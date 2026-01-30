@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# HDMI Grabber Manager - UGREEN Optimized Install Script (v4.0)
-# Instalacja GUI + ffplay grabber /dev/video2 + .deb + odinstalowanie
+# HDMI Grabber Manager - UGREEN Optimized Install Script (v4.2)
+# Opcje: stwórz .deb, zainstaluj z .deb, odinstaluj
 
 set -e
 
@@ -14,7 +14,6 @@ APP_VERSION="3.0.0"
 APP_DIR="/opt/hdmi-grabber-manager"
 BIN_DIR="/usr/local/bin"
 DESKTOP_FILE="/usr/share/applications/hdmi-grabber-manager.desktop"
-ICON_FILE="/usr/share/icons/hicolor/256x256/apps/hdmi-grabber-manager.png"
 DEB_BUILD_DIR="/tmp/hdmi-grabber-manager-deb"
 LANG_CHOICE="EN"
 
@@ -29,32 +28,19 @@ declare -A MESSAGES_EN=(
     [LANG_SELECT2]="2) Polski (PL)"
     [LANG_PROMPT]="Language [1-2, default EN]: "
     [CHECK_ROOT]="❌ Script must be run as root (use sudo)"
-    [INSTALL_DEPS]="📦 Installing dependencies..."
-    [INSTALL_DONE]="✅ Dependencies installed"
-    [INSTALL_APP]="📁 Installing optimized application..."
-    [INSTALL_APP_DONE]="✅ Application installed: $APP_DIR"
-    [CREATE_DESKTOP]="🎯 Creating desktop entry..."
-    [DESKTOP_DONE]="✅ Desktop entry ready (Menu > Multimedia)"
     [CREATE_DEB]="📦 Creating .deb package..."
     [DEB_DONE]="✅ .deb created: ${APP_NAME}_${APP_VERSION}_all.deb"
-    [DEB_INSTALL]="   Install: sudo dpkg -i ${APP_NAME}_${APP_VERSION}_all.deb"
-    [CHOOSE_OPTION]="Choose option:"
-    [OPT1]="1) Install app (full)"
-    [OPT2]="2) Install + .deb package"
-    [OPT3]="3) .deb package only"
-    [OPT4]="4) Uninstall HDMI Grabber Manager"
-    [OPTION_PROMPT]="Option [1-4]: "
-    [INSTALL_COMPLETE]="✅ Installation complete!"
-    [RUN_APP]="🚀 Run: hdmi-grabber-manager"
-    [INSTALL_DEB_COMPLETE]="✅ App + .deb ready!"
-    [DEB_ONLY_COMPLETE]="✅ .deb package ready!"
+    [DEB_INSTALL]="   Install with: sudo dpkg -i ${APP_NAME}_${APP_VERSION}_all.deb"
+    [INSTALL_DEB]="📥 Installing from .deb..."
+    [INSTALL_COMPLETE]="✅ HDMI Grabber Manager installed from .deb!"
+    [OPT1]="1) Create .deb package"
+    [OPT2]="2) Install from .deb"
+    [OPT3]="3) Uninstall HDMI Grabber Manager"
+    [OPTION_PROMPT]="Option [1-3]: "
     [UNINSTALL_COMPLETE]="✅ HDMI Grabber Manager uninstalled!"
     [INVALID_OPTION]="❌ Invalid option"
     [CHECK_FILES]="❌ Missing hdmi-grabber-manager.py!"
     [CHECK_FILES_PATH]="Put script in same dir as install.sh"
-    [PYTHON_CHECK]="🐍 Python3 & PyQt5 OK"
-    [VIDEO_CHECK]="🎥 /dev/video2 detected"
-    [FFPLAY_CHECK]="⚡ ffplay optimized for MJPG OK"
 )
 
 declare -A MESSAGES_PL=(
@@ -64,32 +50,19 @@ declare -A MESSAGES_PL=(
     [LANG_SELECT2]="2) Polski (PL)"
     [LANG_PROMPT]="Język [1-2, domyślnie EN]: "
     [CHECK_ROOT]="❌ Uruchom jako root (sudo)"
-    [INSTALL_DEPS]="📦 Instaluję zależności..."
-    [INSTALL_DONE]="✅ Zależności zainstalowane"
-    [INSTALL_APP]="📁 Instaluję aplikację..."
-    [INSTALL_APP_DONE]="✅ Aplikacja: $APP_DIR"
-    [CREATE_DESKTOP]="🎯 Tworzę wpis Menu..."
-    [DESKTOP_DONE]="✅ Menu > Multimedia > HDMI Grabber"
     [CREATE_DEB]="📦 Tworzę paczkę .deb..."
     [DEB_DONE]="✅ .deb: ${APP_NAME}_${APP_VERSION}_all.deb"
-    [DEB_INSTALL]="   sudo dpkg -i ${APP_NAME}_${APP_VERSION}_all.deb"
-    [CHOOSE_OPTION]="Wybierz opcję:"
-    [OPT1]="1) Zainstaluj aplikację"
-    [OPT2]="2) Zainstaluj + .deb"
-    [OPT3]="3) Tylko .deb"
-    [OPT4]="4) Odinstaluj HDMI Grabber Manager"
-    [OPTION_PROMPT]="Opcja [1-4]: "
-    [INSTALL_COMPLETE]="✅ Gotowe!"
-    [RUN_APP]="🚀 hdmi-grabber-manager"
-    [INSTALL_DEB_COMPLETE]="✅ Aplikacja + .deb gotowe!"
-    [DEB_ONLY_COMPLETE]="✅ Paczka .deb gotowa!"
+    [DEB_INSTALL]="   Instalacja: sudo dpkg -i ${APP_NAME}_${APP_VERSION}_all.deb"
+    [INSTALL_DEB]="📥 Instalacja z .deb..."
+    [INSTALL_COMPLETE]="✅ HDMI Grabber Manager zainstalowany z .deb!"
+    [OPT1]="1) Utwórz paczkę .deb"
+    [OPT2]="2) Zainstaluj z .deb"
+    [OPT3]="3) Odinstaluj HDMI Grabber Manager"
+    [OPTION_PROMPT]="Opcja [1-3]: "
     [UNINSTALL_COMPLETE]="✅ HDMI Grabber Manager odinstalowany!"
     [INVALID_OPTION]="❌ Błędna opcja"
     [CHECK_FILES]="❌ Brak hdmi-grabber-manager.py!"
     [CHECK_FILES_PATH]="Umieść w tym samym folderze co install.sh"
-    [PYTHON_CHECK]="🐍 Python3 + PyQt5 OK"
-    [VIDEO_CHECK]="🎥 /dev/video2 wykryte"
-    [FFPLAY_CHECK]="⚡ ffplay MJPG zoptymalizowane OK"
 )
 
 # ============================================================================
@@ -110,7 +83,7 @@ choose_language() {
     echo "1) $(msg LANG_SELECT)"
     echo "2) $(msg LANG_SELECT2)"
     read -p "$(msg LANG_PROMPT)" lang_input
-    
+
     case $lang_input in
         2|PL|pl) LANG_CHOICE="PL" ;;
         *) LANG_CHOICE="EN" ;;
@@ -135,42 +108,17 @@ check_files() {
     fi
 }
 
-install_dependencies() {
-    echo "$(msg INSTALL_DEPS)"
-    
-    apt-get update
-    
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        python3 python3-minimal python3-pyqt5 python3-pyqt5.qtgui \
-        ffmpeg v4l-utils v4l-utils-tools libv4l-0 libv4lconvert0 libv4l2rds0 \
-        qt5-style-plugins xdg-utils
-    
-    python3 -c "import PyQt5; print('✅ PyQt5 OK')" 2>/dev/null || true
-    echo "$(msg INSTALL_DONE)"
-    echo "$(msg PYTHON_CHECK)"
-}
+create_deb_package() {
+    echo "$(msg CREATE_DEB)"
+    rm -rf "$DEB_BUILD_DIR" 2>/dev/null || true
+    mkdir -p "$DEB_BUILD_DIR/DEBIAN" "$DEB_BUILD_DIR/opt/hdmi-grabber-manager" \
+             "$DEB_BUILD_DIR/usr/local/bin" "$DEB_BUILD_DIR/usr/share/applications"
 
-check_system() {
-    if [ -e /dev/video2 ]; then
-        echo "$(msg VIDEO_CHECK)"
-    fi
-    if command -v ffplay >/dev/null 2>&1; then
-        echo "$(msg FFPLAY_CHECK)"
-    fi
-}
+    cp -f hdmi-grabber-manager.py "$DEB_BUILD_DIR/opt/hdmi-grabber-manager/"
+    chmod 755 "$DEB_BUILD_DIR/opt/hdmi-grabber-manager/hdmi-grabber-manager.py"
+    ln -s "$APP_DIR/hdmi-grabber-manager.py" "$DEB_BUILD_DIR/usr/local/bin/$APP_NAME"
 
-install_application() {
-    echo "$(msg INSTALL_APP)"
-    rm -rf "$APP_DIR" "$BIN_DIR/$APP_NAME" "$DESKTOP_FILE" 2>/dev/null || true
-    mkdir -p "$APP_DIR"
-    cp -f hdmi-grabber-manager.py "$APP_DIR/hdmi-grabber-manager.py"
-    chmod 755 "$APP_DIR/hdmi-grabber-manager.py"
-    ln -sf "$APP_DIR/hdmi-grabber-manager.py" "$BIN_DIR/$APP_NAME"
-    chmod 755 "$BIN_DIR/$APP_NAME"
-
-    # Desktop entry
-    mkdir -p "$(dirname "$DESKTOP_FILE")"
-    cat > "$DESKTOP_FILE" << EOF
+    cat > "$DEB_BUILD_DIR/usr/share/applications/$APP_NAME.desktop" << EOF
 [Desktop Entry]
 Version=$APP_VERSION
 Type=Application
@@ -181,35 +129,6 @@ Icon=video-display
 Terminal=false
 Categories=Multimedia;Utility;Video;
 StartupNotify=true
-EOF
-    chmod 644 "$DESKTOP_FILE"
-    update-desktop-database >/dev/null 2>&1 || true
-
-    echo "$(msg INSTALL_APP_DONE)"
-    echo "$(msg DESKTOP_DONE)"
-}
-
-create_deb_package() {
-    echo "$(msg CREATE_DEB)"
-    rm -rf "$DEB_BUILD_DIR" 2>/dev/null || true
-    mkdir -p "$DEB_BUILD_DIR/DEBIAN" "$DEB_BUILD_DIR/opt/hdmi-grabber-manager" \
-             "$DEB_BUILD_DIR/usr/local/bin" "$DEB_BUILD_DIR/usr/share/applications"
-
-    cp -f hdmi-grabber-manager.py "$DEB_BUILD_DIR/opt/hdmi-grabber-manager/"
-    chmod 755 "$DEB_BUILD_DIR/opt/hdmi-grabber-manager/hdmi-grabber-manager.py"
-    ln -sfr "$APP_DIR/hdmi-grabber-manager.py" "$DEB_BUILD_DIR/usr/local/bin/$APP_NAME"
-
-    cp "$DESKTOP_FILE" "$DEB_BUILD_DIR/usr/share/applications/" 2>/dev/null || \
-    cat > "$DEB_BUILD_DIR/usr/share/applications/$APP_NAME.desktop" << EOF
-[Desktop Entry]
-Version=$APP_VERSION
-Type=Application
-Name=HDMI Grabber Manager
-Comment=UGREEN HDMI grabber control
-Exec=$APP_DIR/hdmi-grabber-manager.py
-Icon=video-display
-Terminal=false
-Categories=Multimedia;Utility;
 EOF
 
     cat > "$DEB_BUILD_DIR/DEBIAN/control" << EOF
@@ -223,7 +142,6 @@ Depends: python3 (>= 3.9), python3-pyqt5, ffmpeg, v4l-utils, libv4l-0 | libv4l2-
 Recommends: libv4lconvert0
 Description: UGREEN HDMI Grabber Manager
  GUI application to control UGREEN HDMI USB grabber (/dev/video2).
- Features: V4L2 controls, ffplay live preview 1080p 30fps MJPG, low latency, presets, settings save.
 EOF
 
     cat > "$DEB_BUILD_DIR/DEBIAN/postinst" << 'POSTINST'
@@ -231,15 +149,15 @@ EOF
 set -e
 update-desktop-database 2>/dev/null || true
 update-mime-database /usr/share/mime 2>/dev/null || true
-echo "HDMI Grabber Manager installed successfully!"
 POSTINST
     chmod 755 "$DEB_BUILD_DIR/DEBIAN/postinst"
 
     cat > "$DEB_BUILD_DIR/DEBIAN/prerm" << 'PRERM'
 #!/bin/bash
 set -e
-rm -f /usr/local/bin/hdmi-grabber-manager 2>/dev/null || true
-rm -f /usr/share/applications/hdmi-grabber-manager.desktop 2>/dev/null || true
+rm -rf /opt/hdmi-grabber-manager
+rm -f /usr/local/bin/hdmi-grabber-manager
+rm -f /usr/share/applications/hdmi-grabber-manager.desktop
 update-desktop-database 2>/dev/null || true
 PRERM
     chmod 755 "$DEB_BUILD_DIR/DEBIAN/prerm"
@@ -248,6 +166,17 @@ PRERM
     rm -rf "$DEB_BUILD_DIR"
     echo "$(msg DEB_DONE)"
     echo "$(msg DEB_INSTALL)"
+}
+
+install_from_deb() {
+    echo "$(msg INSTALL_DEB)"
+    if [ ! -f "${APP_NAME}_${APP_VERSION}_all.deb" ]; then
+        echo "❌ .deb file not found! Run option 1 first."
+        exit 1
+    fi
+    sudo dpkg -i "${APP_NAME}_${APP_VERSION}_all.deb"
+    sudo apt-get install -f -y
+    echo "$(msg INSTALL_COMPLETE)"
 }
 
 uninstall_application() {
@@ -266,37 +195,22 @@ main() {
     choose_language
     check_root
     check_files
-    check_system
 
     echo "$(msg CHOOSE_OPTION)"
     echo "$(msg OPT1)"
     echo "$(msg OPT2)"
     echo "$(msg OPT3)"
-    echo "$(msg OPT4)"
     echo ""
     read -p "$(msg OPTION_PROMPT)" choice
 
     case $choice in
         1)
-            install_dependencies
-            install_application
-            echo ""
-            echo "$(msg INSTALL_COMPLETE)"
-            echo "$(msg RUN_APP)"
+            create_deb_package
             ;;
         2)
-            install_dependencies
-            install_application
-            create_deb_package
-            echo ""
-            echo "$(msg INSTALL_DEB_COMPLETE)"
+            install_from_deb
             ;;
         3)
-            create_deb_package
-            echo ""
-            echo "$(msg DEB_ONLY_COMPLETE)"
-            ;;
-        4)
             uninstall_application
             ;;
         *)
@@ -306,7 +220,7 @@ main() {
     esac
 
     echo ""
-    echo "🎉 $(msg RUN_APP)"
+    echo "🎉 Done!"
     echo "📱 Menu Start > Multimedia > HDMI Grabber Manager"
 }
 
