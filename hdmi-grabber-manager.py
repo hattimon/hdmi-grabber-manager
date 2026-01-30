@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-HDMI Grabber Manager - UGREEN Optimized + language + device selection
+HDMI Grabber Manager - UGREEN Optimized + wybór języka + wybór urządzenia
++ automatyczne wykrywanie grabbera po nazwie karty
 """
 
 import sys
@@ -15,6 +16,7 @@ from PyQt5.QtWidgets import (
     QSlider, QLabel, QPushButton, QMessageBox, QComboBox, QGroupBox
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtGui import QIcon
 
 CONFIG_DIR = Path.home() / ".config" / "hdmi-grabber"
 SETTINGS_FILE = CONFIG_DIR / "settings.json"
@@ -46,11 +48,7 @@ TRANSLATIONS = {
         "confirm_reset": "Reset do domyślnych?",
         "no_device": "Nie znaleziono urządzeń video!",
         "double_click_info": "Podwójne kliknięcie na oknie podglądu maksymalizuje / minimalizuje je",
-        "devices_found": "Wykryto {} urządzeń video",
-        "device_saved": "Zapamiętano urządzenie: {}",
-        "started": "Uruchomiono: {} na {}",
-        "stopped": "Grabber zatrzymany",
-        "v4l2_error": "Błąd v4l2-ctl"
+        "devices_found": "Wykryto {} urządzeń video"
     },
     "EN": {
         "title": "UGREEN HDMI Grabber Manager",
@@ -75,11 +73,7 @@ TRANSLATIONS = {
         "confirm_reset": "Reset to defaults?",
         "no_device": "No video devices found!",
         "double_click_info": "Double-click on the preview window to maximize / minimize it",
-        "devices_found": "Detected {} video devices",
-        "device_saved": "Saved device: {}",
-        "started": "Started: {} on {}",
-        "stopped": "Grabber stopped",
-        "v4l2_error": "v4l2-ctl error"
+        "devices_found": "Detected {} video devices"
     }
 }
 
@@ -97,6 +91,7 @@ PRESETS = [
     {"name_pl": "720p @ 60 fps",  "name_en": "720p @ 60 fps",  "width": 1280, "height": 720,  "fps": "60"},
 ]
 
+# ===================== GRABBER THREAD =====================
 class GrabberThread(QThread):
     finished = pyqtSignal()
     error = pyqtSignal(str)
@@ -141,15 +136,27 @@ class GrabberThread(QThread):
             except:
                 self.process.kill()
 
+# ===================== V4L2 CONTROLLER =====================
 class V4L2Controller:
     def __init__(self, device):
         self.device = device
 
+    def run_cmd(self, cmd, timeout=5):
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            return result.returncode == 0, result.stdout.strip(), result.stderr.strip()
+        except Exception as e:
+            return False, "", str(e)
+
     def set_controls(self, b, c, s, h):
         cmd = ["v4l2-ctl", "-d", self.device,
                f"--set-ctrl=brightness={b},contrast={c},saturation={s},hue={h}"]
-        return subprocess.call(cmd) == 0
+        return self.run_cmd(cmd)[0]
 
+    def test_device(self):
+        return os.path.exists(self.device)
+
+# ===================== MAIN APP =====================
 class HDMIGrabberManager(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -157,21 +164,35 @@ class HDMIGrabberManager(QMainWindow):
         self.current_controls = DEFAULT_CONTROLS.copy()
         self.is_running = False
         self.grabber_thread = None
-        self.current_device = DEFAULT_DEVICE
+        self.current_device = self.detect_grabber_device()  # <- AUTO DETECTION
 
         self.init_ui()
         self.load_settings()
         self.update_ui_language()
         self.refresh_video_devices()
 
-    # ---------- UI ----------
+    # ---------- AUTO DETEKCJA URZĄDZENIA ----------
+    def detect_grabber_device(self):
+        for dev in sorted(glob("/dev/video*")):
+            try:
+                output = subprocess.check_output(["v4l2-ctl", "--all", "-d", dev],
+                                                 text=True, stderr=subprocess.DEVNULL)
+                for line in output.splitlines():
+                    if "Device name" in line and "UGREEN" in line:
+                        return dev
+            except:
+                continue
+        return DEFAULT_DEVICE
+
+    # ---------- UI INIT ----------
     def init_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
         self.main_layout = QVBoxLayout(central)
 
+        # Language selection
         lang_layout = QHBoxLayout()
-        self.lbl_lang = QLabel()
+        self.lbl_lang = QLabel("...")
         lang_layout.addWidget(self.lbl_lang)
         self.cb_lang = QComboBox()
         self.cb_lang.addItems(["English (EN)", "Polski (PL)"])
@@ -179,35 +200,39 @@ class HDMIGrabberManager(QMainWindow):
         lang_layout.addWidget(self.cb_lang)
         self.main_layout.addLayout(lang_layout)
 
+        # Device selection
         dev_layout = QHBoxLayout()
-        self.lbl_device = QLabel()
+        self.lbl_device = QLabel("...")
         dev_layout.addWidget(self.lbl_device)
         self.cb_device = QComboBox()
         dev_layout.addWidget(self.cb_device)
-        self.btn_refresh_dev = QPushButton()
+        self.btn_refresh_dev = QPushButton("...")
         self.btn_refresh_dev.clicked.connect(self.refresh_video_devices)
         dev_layout.addWidget(self.btn_refresh_dev)
-        self.btn_save_dev = QPushButton()
+        self.btn_save_dev = QPushButton("...")
         self.btn_save_dev.clicked.connect(self.save_current_device)
         dev_layout.addWidget(self.btn_save_dev)
         self.main_layout.addLayout(dev_layout)
 
-        self.status = QLabel()
+        self.status = QLabel("...")
         self.main_layout.addWidget(self.status)
 
-        self.preset_group = QGroupBox()
+        # Preset selection
+        self.preset_group = QGroupBox("...")
         preset_lay = QVBoxLayout(self.preset_group)
-        self.lbl_preset = QLabel()
+        self.lbl_preset = QLabel("...")
         preset_lay.addWidget(self.lbl_preset)
         self.cb_preset = QComboBox()
         preset_lay.addWidget(self.cb_preset)
+        self.preset_group.setLayout(preset_lay)
         self.main_layout.addWidget(self.preset_group)
 
-        self.ctrl_group = QGroupBox()
+        # Control sliders
+        self.ctrl_group = QGroupBox("...")
         ctrl_lay = QVBoxLayout(self.ctrl_group)
 
-        def slider(minv, maxv, defv, attr):
-            lbl = QLabel()
+        def slider(key, minv, maxv, defv, attr):
+            lbl = QLabel("...")
             s = QSlider(Qt.Horizontal)
             s.setRange(minv, maxv)
             s.setValue(defv)
@@ -221,60 +246,62 @@ class HDMIGrabberManager(QMainWindow):
             setattr(self, f"{attr}_slider", s)
             setattr(self, f"{attr}_lbl", lbl)
 
-        slider(-128, 127, DEFAULT_CONTROLS["brightness"], "brightness")
-        slider(0, 255, DEFAULT_CONTROLS["contrast"], "contrast")
-        slider(0, 255, DEFAULT_CONTROLS["saturation"], "saturation")
-        slider(-128, 127, DEFAULT_CONTROLS["hue"], "hue")
+        slider("brightness", -128, 127, DEFAULT_CONTROLS["brightness"], "brightness")
+        slider("contrast", 0, 255, DEFAULT_CONTROLS["contrast"], "contrast")
+        slider("saturation", 0, 255, DEFAULT_CONTROLS["saturation"], "saturation")
+        slider("hue", -128, 127, DEFAULT_CONTROLS["hue"], "hue")
 
         self.main_layout.addWidget(self.ctrl_group)
 
+        # Apply / Reset buttons
         bl = QHBoxLayout()
-        self.btn_apply = QPushButton()
+        self.btn_apply = QPushButton("...")
         self.btn_apply.clicked.connect(self.apply_controls)
         bl.addWidget(self.btn_apply)
 
-        self.btn_reset = QPushButton()
+        self.btn_reset = QPushButton("...")
         self.btn_reset.clicked.connect(self.reset_controls)
         bl.addWidget(self.btn_reset)
         self.main_layout.addLayout(bl)
 
-        self.btn_toggle = QPushButton()
-        self.btn_toggle.setStyleSheet("font-size:22px;padding:20px;background:#27ae60;color:white;")
+        # Toggle grabber
+        self.btn_toggle = QPushButton("...")
+        self.btn_toggle.setStyleSheet("font-size: 22px; padding: 20px; background: #27ae60; color: white;")
         self.btn_toggle.clicked.connect(self.toggle_grabber)
         self.main_layout.addWidget(self.btn_toggle)
 
-    # ---------- DEVICES ----------
+        self.main_layout.addStretch()
+
+    # ---------- VIDEO DEVICES ----------
     def refresh_video_devices(self):
-        tr = TRANSLATIONS[self.lang]
         devices = sorted(glob("/dev/video*"))
         self.cb_device.clear()
-
         if not devices:
-            self.cb_device.addItem(tr["no_device"])
-            self.status.setText(tr["no_device"])
+            self.cb_device.addItem("Brak urządzeń")
+            self.status.setText(TRANSLATIONS[self.lang]["no_device"])
             return
 
-        self.cb_device.addItems(devices)
+        for dev in devices:
+            self.cb_device.addItem(dev)
 
+        # Restore last device if available
         if self.current_device in devices:
             self.cb_device.setCurrentText(self.current_device)
         else:
             self.cb_device.setCurrentIndex(0)
 
         self.current_device = self.cb_device.currentText()
-        self.status.setText(tr["devices_found"].format(len(devices)))
+        self.status.setText(TRANSLATIONS[self.lang]["devices_found"].format(len(devices)))
 
     def save_current_device(self):
-        tr = TRANSLATIONS[self.lang]
         self.current_device = self.cb_device.currentText()
         self.save_settings()
-        self.status.setText(tr["device_saved"].format(self.current_device))
+        self.status.setText(f"Zapamiętano urządzenie: {self.current_device}")
 
     # ---------- LANGUAGE ----------
     def change_language(self, index):
         self.lang = "EN" if index == 0 else "PL"
         self.update_ui_language()
-        self.refresh_video_devices()
         self.save_settings()
 
     def update_ui_language(self):
@@ -282,39 +309,42 @@ class HDMIGrabberManager(QMainWindow):
 
         self.setWindowTitle(tr["title"])
         self.lbl_lang.setText(tr["language"])
+        self.btn_toggle.setText(tr["start"] if not self.is_running else tr["stop"])
+        self.btn_apply.setText(tr["apply"])
+        self.btn_reset.setText(tr["reset"])
+        self.preset_group.setTitle(tr["preset"])
+        self.lbl_preset.setText(tr["preset"])
         self.lbl_device.setText(tr["device"])
         self.btn_refresh_dev.setText(tr["refresh_devices"])
         self.btn_save_dev.setText(tr["save_device"])
-        self.btn_apply.setText(tr["apply"])
-        self.btn_reset.setText(tr["reset"])
-        self.btn_toggle.setText(tr["start"] if not self.is_running else tr["stop"])
-        self.status.setText(tr["ready"])
-
-        self.preset_group.setTitle(tr["preset"])
-        self.lbl_preset.setText(tr["preset"])
-        key = "name_pl" if self.lang == "PL" else "name_en"
-        self.cb_preset.clear()
-        self.cb_preset.addItems([p[key] for p in PRESETS])
 
         self.brightness_lbl.setText(tr["brightness"])
         self.contrast_lbl.setText(tr["contrast"])
         self.saturation_lbl.setText(tr["saturation"])
         self.hue_lbl.setText(tr["hue"])
 
+        self.cb_preset.clear()
+        key = "name_pl" if self.lang == "PL" else "name_en"
+        self.cb_preset.addItems([p[key] for p in PRESETS])
+
+        self.status.setText(tr["ready"] if not self.is_running else tr["grabber_running"])
+
     # ---------- CONTROLS ----------
     def apply_controls(self):
-        tr = TRANSLATIONS[self.lang]
+        b = self.brightness_slider.value()
+        c = self.contrast_slider.value()
+        s = self.saturation_slider.value()
+        h = self.hue_slider.value()
+
         v4l2 = V4L2Controller(self.current_device)
-        if v4l2.set_controls(
-            self.brightness_slider.value(),
-            self.contrast_slider.value(),
-            self.saturation_slider.value(),
-            self.hue_slider.value()
-        ):
-            QMessageBox.information(self, tr["success"],
-                tr["controls_applied"] + "\n\n" + tr["double_click_info"])
+        if v4l2.set_controls(b, c, s, h):
+            self.current_controls = {"brightness": b, "contrast": c, "saturation": s, "hue": h}
+            self.save_settings()
+            QMessageBox.information(self, 
+                TRANSLATIONS[self.lang]["success"], 
+                TRANSLATIONS[self.lang]["controls_applied"] + "\n\n" + TRANSLATIONS[self.lang]["double_click_info"])
         else:
-            QMessageBox.warning(self, tr["error"], tr["v4l2_error"])
+            QMessageBox.warning(self, TRANSLATIONS[self.lang]["error"], "Błąd v4l2-ctl")
 
     def reset_controls(self):
         self.brightness_slider.setValue(DEFAULT_CONTROLS["brightness"])
@@ -325,36 +355,53 @@ class HDMIGrabberManager(QMainWindow):
 
     # ---------- GRABBER ----------
     def toggle_grabber(self):
-        self.stop_grabber() if self.is_running else self.start_grabber()
+        if self.is_running:
+            self.stop_grabber()
+        else:
+            self.start_grabber()
 
     def start_grabber(self):
-        tr = TRANSLATIONS[self.lang]
-        preset = PRESETS[self.cb_preset.currentIndex()]
-        key = "name_pl" if self.lang == "PL" else "name_en"
+        if self.is_running:
+            return
+
+        preset_idx = self.cb_preset.currentIndex()
+        preset = PRESETS[preset_idx]
+
+        w = preset["width"]
+        h = preset["height"]
+        fps = preset["fps"]
 
         self.is_running = True
-        self.btn_toggle.setText(tr["stop"])
-        self.btn_toggle.setStyleSheet("font-size:22px;padding:20px;background:#c0392b;color:white;")
+        self.btn_toggle.setText(TRANSLATIONS[self.lang]["stop"])
+        self.btn_toggle.setStyleSheet("font-size: 22px; padding: 20px; background: #c0392b; color: white;")
 
-        self.grabber_thread = GrabberThread(self.current_device, preset["width"], preset["height"], preset["fps"])
+        self.apply_controls()
+
+        self.grabber_thread = GrabberThread(self.current_device, w, h, fps)
         self.grabber_thread.finished.connect(self.on_grabber_finished)
         self.grabber_thread.error.connect(self.on_grabber_error)
         self.grabber_thread.start()
 
-        self.status.setText(tr["started"].format(preset[key], self.current_device))
+        preset_key = "name_pl" if self.lang == "PL" else "name_en"
+        self.status.setText(f"Started: {preset[preset_key]} on {self.current_device}")
 
     def stop_grabber(self):
-        tr = TRANSLATIONS[self.lang]
-        if self.grabber_thread:
-            self.grabber_thread.stop()
+        if not self.is_running or not self.grabber_thread:
+            return
+
+        self.grabber_thread.stop()
+        self.grabber_thread.wait(5000)
+
         self.is_running = False
-        self.btn_toggle.setText(tr["start"])
-        self.btn_toggle.setStyleSheet("font-size:22px;padding:20px;background:#27ae60;color:white;")
-        self.status.setText(tr["ready"])
+        self.btn_toggle.setText(TRANSLATIONS[self.lang]["start"])
+        self.btn_toggle.setStyleSheet("font-size: 22px; padding: 20px; background: #27ae60; color: white;")
+        self.status.setText(TRANSLATIONS[self.lang]["ready"])
 
     def on_grabber_finished(self):
         self.is_running = False
-        self.status.setText(TRANSLATIONS[self.lang]["stopped"])
+        self.btn_toggle.setText(TRANSLATIONS[self.lang]["start"])
+        self.btn_toggle.setStyleSheet("font-size: 22px; padding: 20px; background: #27ae60; color: white;")
+        self.status.setText("Grabber stopped")
 
     def on_grabber_error(self, msg):
         QMessageBox.critical(self, TRANSLATIONS[self.lang]["error"], msg)
@@ -364,20 +411,37 @@ class HDMIGrabberManager(QMainWindow):
     def load_settings(self):
         if SETTINGS_FILE.exists():
             try:
-                data = json.load(open(SETTINGS_FILE))
-                self.lang = data.get("language", "EN")
-                self.current_device = data.get("device", DEFAULT_DEVICE)
+                with open(SETTINGS_FILE, 'r') as f:
+                    data = json.load(f)
+                    self.current_controls.update(data.get('controls', {}))
+                    self.lang = data.get('language', 'EN')
+                    self.cb_lang.setCurrentIndex(0 if self.lang == 'EN' else 1)
+                    self.current_device = data.get('device', self.current_device)
             except:
                 pass
-        self.cb_lang.setCurrentIndex(0 if self.lang == "EN" else 1)
+
+        self.brightness_slider.setValue(self.current_controls["brightness"])
+        self.contrast_slider.setValue(self.current_controls["contrast"])
+        self.saturation_slider.setValue(self.current_controls["saturation"])
+        self.hue_slider.setValue(self.current_controls["hue"])
 
     def save_settings(self):
-        json.dump({"language": self.lang, "device": self.current_device}, open(SETTINGS_FILE, "w"), indent=2)
+        data = {
+            'controls': self.current_controls,
+            'language': self.lang,
+            'device': self.current_device
+        }
+        try:
+            with open(SETTINGS_FILE, 'w') as f:
+                json.dump(data, f, indent=2)
+        except:
+            pass
 
-    def closeEvent(self, e):
+    def closeEvent(self, event):
         self.stop_grabber()
-        e.accept()
+        event.accept()
 
+# ===================== MAIN =====================
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = HDMIGrabberManager()
