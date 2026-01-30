@@ -1,129 +1,104 @@
-# HDMI Grabber Manager (UGREEN) – Linux MX
+# HDMI Grabber Manager
 
-GUI application for controlling UGREEN HDMI USB grabbers on Linux using **V4L2** and **ffplay**.  
-Includes brightness/contrast controls, resolution presets, live preview, and device selection.
-
----
-
-## ✨ Features
-
-- 🎥 Live HDMI preview using **ffplay (MJPEG low‑latency mode)**
-- 🎛 Brightness / Contrast / Saturation / Hue controls (via v4l2-ctl)
-- 📺 Resolution & FPS presets (720p / 1080p @ 30/60fps)
-- 🔌 Video device selector (`/dev/video*`)
-- 💾 Saves last used device, language and settings
-- 🌍 English & Polish interface
-- 📦 Easy installation via generated **.deb package**
+> **Language:** [English](#english) | [Polski](#polski)
 
 ---
 
-## 🐧 Supported Systems
+## <a name="english"></a>English (default)
 
-Tested on:
-- **MX Linux**
-- Debian-based distributions (Ubuntu, Mint, etc.)
+**HDMI Grabber Manager** is a simple tool for managing HDMI capture devices. It allows you to easily view, record, and manage HDMI input sources on your system.
 
----
+### Features
 
-## 🔧 Build the .deb Package
+* Detect and list HDMI capture devices
+* Live preview of HDMI input
+* Easy recording to local storage
+* Lightweight and fast
 
-### 1️⃣ Requirements (only for building)
-Make sure you have:
+### Screenshots
+
+![App Screenshot EN](ugreenEN.png)
+
+### Installation
+
+You can install directly from this repository:
 
 ```bash
-sudo apt update
-sudo apt install dpkg-dev
+# Clone the repository
+git clone https://github.com/hattimon/hdmi-grabber-manager.git
+cd hdmi-grabber-manager
+
+# Install dependencies (example for Python project)
+pip install -r requirements.txt
+
+# Run the application
+python app.py
 ```
 
-### 2️⃣ Put files in one folder
+Or download the latest release from GitHub and run the binary (if provided).
 
-You must have:
-
-```
-install.sh
-hdmi-grabber-manager.py
-```
-
-### 3️⃣ Build package
+### Usage
 
 ```bash
-chmod +x install.sh
-sudo ./install.sh
-```
+# Start the app
+python app.py
 
-After completion you will get:
+# Show available devices
+python app.py --list
 
-```
-hdmi-grabber-manager_3.0.0_all.deb
+# Record from a specific device
+python app.py --record 0 --output capture.mp4
 ```
 
 ---
 
-## 📦 Install the Application
+## <a name="polski"></a>Polski
+
+**HDMI Grabber Manager** to proste narzędzie do zarządzania urządzeniami do przechwytywania HDMI. Pozwala łatwo przeglądać, nagrywać i zarządzać źródłami HDMI w systemie.
+
+### Funkcje
+
+* Wykrywanie i lista urządzeń HDMI
+* Podgląd na żywo HDMI
+* Proste nagrywanie na dysk lokalny
+* Lekki i szybki
+
+### Zrzuty ekranu
+
+![App Screenshot PL](ugreenPL.png)
+
+### Instalacja
+
+Możesz zainstalować bezpośrednio z repozytorium:
 
 ```bash
-sudo dpkg -i hdmi-grabber-manager_3.0.0_all.deb
+# Sklonuj repozytorium
+git clone https://github.com/hattimon/hdmi-grabber-manager.git
+cd hdmi-grabber-manager
+
+# Zainstaluj zależności (przykład dla projektu Python)
+pip install -r requirements.txt
+
+# Uruchom aplikację
+python app.py
 ```
 
-If dependencies are missing:
+Lub pobierz najnowszą wersję z GitHub i uruchom binarkę (jeśli jest dostępna).
+
+### Użytkowanie
 
 ```bash
-sudo apt -f install
+# Uruchom aplikację
+python app.py
+
+# Pokaż dostępne urządzenia
+python app.py --list
+
+# Nagrywaj z wybranego urządzenia
+python app.py --record 0 --output capture.mp4
 ```
 
 ---
 
-## 🚀 Run the App
-
-From menu:
-```
-Menu → Multimedia → HDMI Grabber Manager
-```
-
-Or terminal:
-```bash
-hdmi-grabber-manager
-```
-
----
-
-## 🎛 Controls
-
-| Control | Description |
-|--------|-------------|
-| Brightness | Adjust video brightness |
-| Contrast | Adjust contrast |
-| Saturation | Adjust color intensity |
-| Hue | Adjust color tone |
-| Presets | Choose resolution and FPS |
-| Device | Select HDMI capture device |
-
----
-
-## 🧠 Tips
-
-- Double‑click the preview window to toggle fullscreen
-- If video is black, verify correct `/dev/videoX` device
-- Use 1080p30 for best stability on slower systems
-
----
-
-## 🛠 Dependencies (installed automatically via .deb)
-
-- python3
-- python3-pyqt5
-- ffmpeg
-- v4l-utils
-
----
-
-## 👨‍💻 Author
-
-HDMI Grabber Manager Project  
-Optimized for **UGREEN HDMI Capture Cards**
-
----
-
-## 📜 License
-
-Free for personal and educational use.
+**License:** MIT
+**Repository:** [https://github.com/hattimon/hdmi-grabber-manager](https://github.com/hattimon/hdmi-grabber-manager)
