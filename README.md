@@ -6,7 +6,8 @@
 
 ## <a name="english"></a>English (default)
 
-**HDMI Grabber Manager (UGREEN)** is a professional GUI application for controlling UGREEN HDMI USB grabbers on Linux using **V4L2** and **ffplay**. It supports brightness/contrast controls, resolution presets, live preview, device selection, and remembers last settings.
+**HDMI Grabber Manager (UGREEN)** is a professional GUI application for controlling UGREEN HDMI USB grabbers on Linux using **V4L2** and **ffplay**.  
+It supports brightness/contrast controls, resolution presets, live preview, device selection, and remembers last settings.
 
 ### ✨ Features
 
@@ -88,15 +89,16 @@ sudo rm -f /usr/share/applications/hdmi-grabber-manager.desktop
 
 ![App Screenshot EN](ugreenEN.png)
 
-**Author:** HDMI Grabber Manager Project created by HATTIMON
-Optimized for UGREEN HDMI Capture cards
-**License:** Free for private and educational use
+**Author:** HDMI Grabber Manager Project created by HATTIMON  
+Optimized for UGREEN HDMI Capture cards  
+**License:** Free for private and educational use  
 
 ---
 
 ## <a name="polski"></a>Polski
 
-**HDMI Grabber Manager (UGREEN)** to profesjonalna aplikacja GUI do sterowania UGREEN HDMI USB grabberami na Linuxie przy użyciu **V4L2** i **ffplay**. Obsługuje jasność/kontrast, presety rozdzielczości, podgląd na żywo, wybór urządzenia i pamięta ostatnie ustawienia.
+**HDMI Grabber Manager (UGREEN)** to profesjonalna aplikacja GUI do sterowania UGREEN HDMI USB grabberami na Linuxie przy użyciu **V4L2** i **ffplay**.  
+Obsługuje jasność/kontrast, presety rozdzielczości, podgląd na żywo, wybór urządzenia i pamięta ostatnie ustawienia.
 
 ### ✨ Funkcje
 
@@ -180,6 +182,6 @@ sudo rm -f /usr/share/applications/hdmi-grabber-manager.desktop
 
 ---
 
-**Autor:** HDMI Grabber Manager Project stworzony przez HATTIMON
-Optymalizacja dla kart UGREEN HDMI Capture
-**Licencja:** Darmowe do użytku prywatnego i edukacyjnego
+**Autor:** HDMI Grabber Manager Project stworzony przez HATTIMON  
+Optymalizacja dla kart UGREEN HDMI Capture  
+**Licencja:** Darmowe do użytku prywatnego i edukacyjnego  
