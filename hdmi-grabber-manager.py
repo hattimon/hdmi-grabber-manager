@@ -48,7 +48,8 @@ TRANSLATIONS = {
         "confirm_reset": "Reset do domyślnych?",
         "no_device": "Nie znaleziono urządzeń video!",
         "double_click_info": "Podwójne kliknięcie na oknie podglądu maksymalizuje / minimalizuje je",
-        "devices_found": "Wykryto {} urządzeń video"
+        "devices_found": "Wykryto {} urządzeń video",
+        "device_saved": "Zapamiętano urządzenie: {}"
     },
     "EN": {
         "title": "UGREEN HDMI Grabber Manager",
@@ -73,7 +74,8 @@ TRANSLATIONS = {
         "confirm_reset": "Reset to defaults?",
         "no_device": "No video devices found!",
         "double_click_info": "Double-click on the preview window to maximize / minimize it",
-        "devices_found": "Detected {} video devices"
+        "devices_found": "Detected {} video devices",
+        "device_saved": "Saved device: {}"
     }
 }
 
@@ -296,7 +298,8 @@ class HDMIGrabberManager(QMainWindow):
     def save_current_device(self):
         self.current_device = self.cb_device.currentText()
         self.save_settings()
-        self.status.setText(f"Zapamiętano urządzenie: {self.current_device}")
+        # <-- POPRAWIONE: użycie TRANSLATIONS w zależności od języka
+        self.status.setText(TRANSLATIONS[self.lang]["device_saved"].format(self.current_device))
 
     # ---------- LANGUAGE ----------
     def change_language(self, index):
@@ -344,7 +347,7 @@ class HDMIGrabberManager(QMainWindow):
                 TRANSLATIONS[self.lang]["success"], 
                 TRANSLATIONS[self.lang]["controls_applied"] + "\n\n" + TRANSLATIONS[self.lang]["double_click_info"])
         else:
-            QMessageBox.warning(self, TRANSLATIONS[self.lang]["error"], "Błąd v4l2-ctl")
+            QMessageBox.warning(self, TRANSLATIONS[self.lang]["error"], "v4l2-ctl error")
 
     def reset_controls(self):
         self.brightness_slider.setValue(DEFAULT_CONTROLS["brightness"])
