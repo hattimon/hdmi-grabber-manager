@@ -87,8 +87,10 @@ sudo rm -f /usr/share/applications/hdmi-grabber-manager.desktop
 ### 📷 Screenshots
 
 ![App Screenshot EN](ugreenEN.png)
-![App Screenshot PL](ugreenPL.png)
-![Additional Screenshot](3a471c5c-cdb2-45bc-96fa-045010665d69.png)
+
+**Author:** HDMI Grabber Manager Project created by HATTIMON
+Optimized for UGREEN HDMI Capture cards
+**License:** Free for private and educational use
 
 ---
 
@@ -174,12 +176,10 @@ sudo rm -f /usr/share/applications/hdmi-grabber-manager.desktop
 
 ### 📷 Zrzuty ekranu
 
-![App Screenshot EN](ugreenEN.png)
 ![App Screenshot PL](ugreenPL.png)
-![Dodatkowy Screenshot](3a471c5c-cdb2-45bc-96fa-045010665d69.png)
 
 ---
 
-**Autor:** HDMI Grabber Manager Project
+**Autor:** HDMI Grabber Manager Project stworzony przez HATTIMON
 Optymalizacja dla kart UGREEN HDMI Capture
 **Licencja:** Darmowe do użytku prywatnego i edukacyjnego
