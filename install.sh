@@ -1,106 +1,48 @@
 #!/bin/bash
-# HDMI Grabber Manager - UGREEN Optimized Install Script (v3.0)
-# Automatycznie tworzy pakiet .deb
-set -e
+# install.sh - Tworzy pakiet .deb dla HDMI Grabber Manager
 
 APP_NAME="hdmi-grabber-manager"
-APP_VERSION="3.0.0"
-DEB_BUILD_DIR="/tmp/hdmi-grabber-manager-deb"
-LANG_CHOICE="EN"
+APP_VERSION="1.0"
+APP_ARCH="all"
+APP_DESC="UGREEN HDMI Grabber Manager - zarządzanie urządzeniem HDMI w Linux MX"
 
-declare -A MESSAGES_EN=(
-    [TITLE]="===== UGREEN HDMI Grabber Manager .deb Builder v$APP_VERSION ====="
-    [CHOOSE_LANG]="Choose installation language / Wybierz język instalacji"
-    [LANG_SELECT]="1) English (EN)"
-    [LANG_SELECT2]="2) Polski (PL)"
-    [LANG_PROMPT]="Language [1-2, default EN]: "
-    [CHECK_ROOT]="❌ Script must be run as root (use sudo)"
-    [CREATE_DEB]="📦 Creating .deb package..."
-    [DEB_DONE]="✅ .deb created: ${APP_NAME}_${APP_VERSION}_all.deb"
-    [DEB_INSTALL]=" Install: sudo dpkg -i ${APP_NAME}_${APP_VERSION}_all.deb"
-    [DEB_ONLY_COMPLETE]="✅ .deb package ready!"
-    [CHECK_FILES]="❌ Missing hdmi-grabber-manager.py!"
-)
+# Ścieżki tymczasowe
+BUILD_DIR="./${APP_NAME}_deb"
+DEBIAN_DIR="${BUILD_DIR}/DEBIAN"
+BIN_DIR="${BUILD_DIR}/usr/bin"
 
-declare -A MESSAGES_PL=(
-    [TITLE]="===== Kreator paczki .deb HDMI Grabber Manager v$APP_VERSION ====="
-    [CHOOSE_LANG]="Wybierz język instalacji"
-    [LANG_SELECT]="1) English (EN)"
-    [LANG_SELECT2]="2) Polski (PL)"
-    [LANG_PROMPT]="Język [1-2, domyślnie EN]: "
-    [CHECK_ROOT]="❌ Uruchom jako root (sudo)"
-    [CREATE_DEB]="📦 Tworzę paczkę .deb..."
-    [DEB_DONE]="✅ .deb: ${APP_NAME}_${APP_VERSION}_all.deb"
-    [DEB_INSTALL]=" sudo dpkg -i ${APP_NAME}_${APP_VERSION}_all.deb"
-    [DEB_ONLY_COMPLETE]="✅ Paczka .deb gotowa!"
-    [CHECK_FILES]="❌ Brak hdmi-grabber-manager.py!"
-)
+# Usuń stare buildy
+rm -rf "$BUILD_DIR"
 
-msg(){ [ "$LANG_CHOICE" = "PL" ] && echo "${MESSAGES_PL[$1]}" || echo "${MESSAGES_EN[$1]}"; }
+# Tworzenie struktury pakietu
+mkdir -p "$DEBIAN_DIR"
+mkdir -p "$BIN_DIR"
 
-choose_language(){
-    echo "$(msg CHOOSE_LANG)"
-    echo "1) $(msg LANG_SELECT)"
-    echo "2) $(msg LANG_SELECT2)"
-    read -p "$(msg LANG_PROMPT)" lang_input
-    case $lang_input in 2|PL|pl) LANG_CHOICE="PL";; *) LANG_CHOICE="EN";; esac
-    echo ""; echo "$(msg TITLE)"; echo ""
-}
+# Kopiowanie pliku głównego
+cp ./hdmi-grabber-manager.py "$BIN_DIR/$APP_NAME"
+chmod +x "$BIN_DIR/$APP_NAME"
 
-check_root(){ [ "$EUID" -ne 0 ] && echo "$(msg CHECK_ROOT)" && exit 1; }
-check_files(){ [ ! -f "hdmi-grabber-manager.py" ] && echo "$(msg CHECK_FILES)" && exit 1; }
-
-create_deb_package(){
-    echo "$(msg CREATE_DEB)"
-    rm -rf "$DEB_BUILD_DIR"
-    mkdir -p "$DEB_BUILD_DIR/DEBIAN" \
-             "$DEB_BUILD_DIR/opt/hdmi-grabber-manager" \
-             "$DEB_BUILD_DIR/usr/local/bin" \
-             "$DEB_BUILD_DIR/usr/share/applications"
-
-    cp hdmi-grabber-manager.py "$DEB_BUILD_DIR/opt/hdmi-grabber-manager/"
-    chmod 755 "$DEB_BUILD_DIR/opt/hdmi-grabber-manager/hdmi-grabber-manager.py"
-
-    # ✅ POPRAWIONY LINK
-    ln -sfr /opt/hdmi-grabber-manager/hdmi-grabber-manager.py \
-           "$DEB_BUILD_DIR/usr/local/bin/$APP_NAME"
-
-    cat > "$DEB_BUILD_DIR/usr/share/applications/$APP_NAME.desktop" << EOF
-[Desktop Entry]
-Version=$APP_VERSION
-Type=Application
-Name=HDMI Grabber Manager
-Comment=UGREEN HDMI grabber control
-Exec=$APP_NAME
-Icon=video-display
-Terminal=false
-Categories=Multimedia;Utility;
-EOF
-
-    cat > "$DEB_BUILD_DIR/DEBIAN/control" << EOF
+# Tworzenie pliku kontrolnego DEBIAN/control
+cat <<EOF > "$DEBIAN_DIR/control"
 Package: $APP_NAME
 Version: $APP_VERSION
 Section: utils
 Priority: optional
-Architecture: all
-Maintainer: HDMI Grabber <dev@local>
-Depends: python3 (>= 3.9), python3-pyqt5, ffmpeg, v4l-utils
-Description: UGREEN HDMI Grabber Manager GUI for HDMI capture devices
+Architecture: $APP_ARCH
+Maintainer: Twoje Imię <twoj@email.com>
+Description: $APP_DESC
+Depends: python3, python3-pyqt5, v4l-utils, ffmpeg
 EOF
 
-    dpkg-deb --build "$DEB_BUILD_DIR" "${APP_NAME}_${APP_VERSION}_all.deb"
-    rm -rf "$DEB_BUILD_DIR"
+# Opcjonalnie: skrypt preinst / postinst
+# mkdir -p "$DEBIAN_DIR"
+# echo -e "#!/bin/bash\nexit 0" > "$DEBIAN_DIR/postinst"
+# chmod 755 "$DEBIAN_DIR/postinst"
 
-    echo "$(msg DEB_DONE)"
-    echo "$(msg DEB_INSTALL)"
-}
+# Budowanie pakietu .deb
+dpkg-deb --build "$BUILD_DIR"
 
-main(){
-    clear
-    choose_language
-    check_root
-    check_files
-    create_deb_package
-    echo ""; echo "$(msg DEB_ONLY_COMPLETE)"
-}
-main "$@"
+# Przeniesienie paczki do katalogu bieżącego
+mv "${BUILD_DIR}.deb" ./
+
+echo "Pakiet ${APP_NAME}.deb został wygenerowany w katalogu bieżącym."
